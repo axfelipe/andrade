@@ -1,426 +1,359 @@
 /**
- * Andrade Drywall Services - JavaScript
- * Professional functionality for contractor website
+ * Andrade Drywall Services - Final JavaScript
+ * Optimized for direct leads via Phone + WhatsApp
  */
+
+// ========================================
+// HELPERS
+// ========================================
+function qs(selector, scope = document) {
+    return scope.querySelector(selector);
+}
+
+function qsa(selector, scope = document) {
+    return Array.from(scope.querySelectorAll(selector));
+}
 
 // ========================================
 // LANGUAGE SWITCHER
 // ========================================
-function setLanguage(lang) {
-    // Update active state on buttons
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // Update all elements with data-en and data-pt attributes
-    document.querySelectorAll('[data-en][data-pt]').forEach(el => {
-        // Add fade effect
+function applyLanguage(lang) {
+    qsa('[data-en][data-pt]').forEach((el) => {
+        const nextText = el.getAttribute(`data-${lang}`);
+        if (!nextText) return;
+
+        el.style.transition = 'opacity 0.15s ease';
         el.style.opacity = '0';
-        
-        setTimeout(() => {
-            el.textContent = el.getAttribute(`data-${lang}`);
+
+        window.setTimeout(() => {
+            el.textContent = nextText;
             el.style.opacity = '1';
-        }, 150);
+        }, 120);
     });
-    
-    // Store preference
-    localStorage.setItem('preferredLanguage', lang);
-    
-    // Update HTML lang attribute
+
     document.documentElement.lang = lang;
+    localStorage.setItem('preferredLanguage', lang);
+
+    qsa('.lang-btn').forEach((btn) => btn.classList.remove('active'));
+    const activeBtn = qs(`.lang-btn[onclick*="'${lang}'"]`);
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
-// Load saved language preference
-document.addEventListener('DOMContentLoaded', () => {
-    const savedLang = localStorage.getItem('preferredLanguage');
-    if (savedLang === 'pt') {
-        const ptBtn = document.querySelector('.lang-btn:last-child');
-        if (ptBtn) {
-            ptBtn.click();
-        }
+function setLanguage(lang, clickedButton = null) {
+    applyLanguage(lang);
+
+    if (clickedButton) {
+        qsa('.lang-btn').forEach((btn) => btn.classList.remove('active'));
+        clickedButton.classList.add('active');
     }
+}
+
+// ========================================
+// DOM READY
+// ========================================
+document.addEventListener('DOMContentLoaded', () => {
+    initSavedLanguage();
+    initMobileMenu();
+    initHeaderScroll();
+    initSmoothScroll();
+    initGalleryLightbox();
+    initReveal();
+    initTracking();
+    initReducedMotion();
 });
+
+// ========================================
+// LOAD SAVED LANGUAGE
+// ========================================
+function initSavedLanguage() {
+    const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+    applyLanguage(savedLang);
+}
 
 // ========================================
 // MOBILE NAVIGATION
 // ========================================
-const menuToggle = document.getElementById('menuToggle');
-const nav = document.getElementById('nav');
+function initMobileMenu() {
+    const menuToggle = qs('#menuToggle');
+    const nav = qs('#nav');
 
-if (menuToggle && nav) {
+    if (!menuToggle || !nav) return;
+
+    const closeMenu = () => {
+        menuToggle.classList.remove('active');
+        nav.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    const openMenu = () => {
+        menuToggle.classList.add('active');
+        nav.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    };
+
     menuToggle.addEventListener('click', () => {
-        menuToggle.classList.toggle('active');
-        nav.classList.toggle('active');
-        
-        // Prevent body scroll when menu is open
-        document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
+        const isOpen = nav.classList.contains('active');
+        if (isOpen) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
     });
-    
-    // Close menu when clicking on a link
-    nav.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            menuToggle.classList.remove('active');
-            nav.classList.remove('active');
-            document.body.style.overflow = '';
-        });
+
+    qsa('a', nav).forEach((link) => {
+        link.addEventListener('click', closeMenu);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            closeMenu();
+        }
     });
 }
 
 // ========================================
 // HEADER SCROLL EFFECT
 // ========================================
-const header = document.getElementById('header');
+function initHeaderScroll() {
+    const header = qs('#header');
+    if (!header) return;
 
-if (header) {
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
+    const onScroll = () => {
+        if (window.scrollY > 24) {
             header.classList.add('scrolled');
         } else {
             header.classList.remove('scrolled');
         }
-    });
+    };
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
 }
 
 // ========================================
-// SMOOTH SCROLL FOR ANCHOR LINKS
+// SMOOTH SCROLL
 // ========================================
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
+function initSmoothScroll() {
+    const header = qs('#header');
+
+    qsa('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (!href || href === '#') return;
+
+            const target = qs(href);
+            if (!target) return;
+
+            e.preventDefault();
+
             const headerHeight = header ? header.offsetHeight : 0;
-            const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight;
-            
+            const targetTop = target.getBoundingClientRect().top + window.pageYOffset;
+            const offsetTop = targetTop - headerHeight;
+
             window.scrollTo({
-                top: targetPosition,
+                top: offsetTop,
                 behavior: 'smooth'
             });
-        }
-    });
-});
-
-// ========================================
-// CONTACT FORM HANDLING
-// ========================================
-const contactForm = document.getElementById('contactForm');
-
-if (contactForm) {
-    contactForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Get form data
-        const formData = new FormData(this);
-        const data = Object.fromEntries(formData);
-        
-        // Validate form
-        if (!data.name || !data.phone || !data.email || !data.message) {
-            showNotification('Please fill in all fields.', 'error');
-            return;
-        }
-        
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(data.email)) {
-            showNotification('Please enter a valid email address.', 'error');
-            return;
-        }
-        
-        // Simulate form submission (replace with actual backend)
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<span>Sending...</span>';
-        submitBtn.disabled = true;
-        
-        // Create WhatsApp message with form data
-        const message = `New Contact Form Submission:%0A%0AName: ${data.name}%0APhone: ${data.phone}%0AEmail: ${data.email}%0AMessage: ${data.message}`;
-        const whatsappUrl = `https://wa.me/18542180395?text=${message}`;
-        
-        setTimeout(() => {
-            // Open WhatsApp with form data
-            window.open(whatsappUrl, '_blank');
-            
-            // Reset form
-            this.reset();
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            
-            showNotification('Thank you! Redirecting to WhatsApp...', 'success');
-        }, 1000);
+        });
     });
 }
 
 // ========================================
-// NOTIFICATION SYSTEM
+// LIGHTBOX GALLERY
 // ========================================
-function showNotification(message, type = 'info') {
-    // Remove existing notifications
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-    
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <span>${message}</span>
-        <button onclick="this.parentElement.remove()">&times;</button>
-    `;
-    
-    // Add styles
-    notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        padding: 16px 24px;
-        background: ${type === 'success' ? '#25D366' : type === 'error' ? '#E11D2E' : '#000000'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-        max-width: 400px;
-    `;
-    
-    // Add animation styles
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-        .notification button {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 0;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(notification);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease forwards';
-        setTimeout(() => notification.remove(), 300);
-    }, 5000);
-}
+function initGalleryLightbox() {
+    qsa('.gallery-item').forEach((item) => {
+        item.addEventListener('click', () => {
+            const img = qs('img', item);
+            if (!img) return;
 
-// ========================================
-// LAZY LOADING FOR IMAGES
-// ========================================
-if ('IntersectionObserver' in window) {
-    const imageObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target;
-                if (img.dataset.src) {
-                    img.src = img.dataset.src;
-                    img.removeAttribute('data-src');
+            const existing = qs('.lightbox');
+            if (existing) existing.remove();
+
+            const lightbox = document.createElement('div');
+            lightbox.className = 'lightbox';
+            lightbox.innerHTML = `
+                <div class="lightbox-overlay"></div>
+                <div class="lightbox-content">
+                    <img src="${img.src}" alt="${img.alt}">
+                    <button class="lightbox-close" aria-label="Close image">&times;</button>
+                </div>
+            `;
+
+            Object.assign(lightbox.style, {
+                position: 'fixed',
+                inset: '0',
+                zIndex: '10000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            });
+
+            const overlay = qs('.lightbox-overlay', lightbox);
+            Object.assign(overlay.style, {
+                position: 'absolute',
+                inset: '0',
+                background: 'rgba(0,0,0,0.88)'
+            });
+
+            const content = qs('.lightbox-content', lightbox);
+            Object.assign(content.style, {
+                position: 'relative',
+                zIndex: '2',
+                maxWidth: '90%',
+                maxHeight: '90vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            });
+
+            const lightboxImg = qs('img', lightbox);
+            Object.assign(lightboxImg.style, {
+                maxWidth: '100%',
+                maxHeight: '90vh',
+                objectFit: 'contain',
+                borderRadius: '10px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.25)'
+            });
+
+            const closeBtn = qs('.lightbox-close', lightbox);
+            Object.assign(closeBtn.style, {
+                position: 'absolute',
+                top: '-16px',
+                right: '-16px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: '#ffffff',
+                color: '#000000',
+                fontSize: '28px',
+                lineHeight: '1',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+            });
+
+            const closeLightbox = () => {
+                lightbox.remove();
+                document.body.style.overflow = '';
+            };
+
+            closeBtn.addEventListener('click', closeLightbox);
+            overlay.addEventListener('click', closeLightbox);
+
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    closeLightbox();
+                    document.removeEventListener('keydown', escHandler);
                 }
-                observer.unobserve(img);
-            }
+            };
+
+            document.addEventListener('keydown', escHandler);
+
+            document.body.appendChild(lightbox);
+            document.body.style.overflow = 'hidden';
         });
-    });
-    
-    document.querySelectorAll('img[data-src]').forEach(img => {
-        imageObserver.observe(img);
     });
 }
 
 // ========================================
-// GALLERY LIGHTBOX (Optional Enhancement)
+// SCROLL REVEAL
 // ========================================
-document.querySelectorAll('.gallery-item').forEach(item => {
-    item.addEventListener('click', function() {
-        const img = this.querySelector('img');
-        if (!img) return;
-        
-        // Create lightbox
-        const lightbox = document.createElement('div');
-        lightbox.className = 'lightbox';
-        lightbox.innerHTML = `
-            <div class="lightbox-overlay"></div>
-            <img src="${img.src}" alt="${img.alt}">
-            <button class="lightbox-close">&times;</button>
-        `;
-        
-        lightbox.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
-        
-        const overlay = lightbox.querySelector('.lightbox-overlay');
-        overlay.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.9);
-        `;
-        
-        const lightboxImg = lightbox.querySelector('img');
-        lightboxImg.style.cssText = `
-            position: relative;
-            max-width: 90%;
-            max-height: 90vh;
-            object-fit: contain;
-            border-radius: 8px;
-        `;
-        
-        const closeBtn = lightbox.querySelector('.lightbox-close');
-        closeBtn.style.cssText = `
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 40px;
-            cursor: pointer;
-            z-index: 10001;
-        `;
-        
-        document.body.appendChild(lightbox);
-        document.body.style.overflow = 'hidden';
-        
-        // Close handlers
-        const closeLightbox = () => {
-            lightbox.remove();
-            document.body.style.overflow = '';
-        };
-        
-        closeBtn.addEventListener('click', closeLightbox);
-        overlay.addEventListener('click', closeLightbox);
-        document.addEventListener('keydown', function escHandler(e) {
-            if (e.key === 'Escape') {
-                closeLightbox();
-                document.removeEventListener('keydown', escHandler);
-            }
-        });
-    });
-});
-
-// ========================================
-// SCROLL REVEAL ANIMATION
-// ========================================
-function revealOnScroll() {
-    const elements = document.querySelectorAll('.service-card, .gallery-item, .contact-card, .about-features .feature');
-    
-    elements.forEach(el => {
-        const elementTop = el.getBoundingClientRect().top;
-        const windowHeight = window.innerHeight;
-        
-        if (elementTop < windowHeight - 100) {
-            el.style.opacity = '1';
-            el.style.transform = 'translateY(0)';
-        }
-    });
-}
-
-// Initialize elements for reveal
 function initReveal() {
-    const elements = document.querySelectorAll('.service-card, .gallery-item, .contact-card, .about-features .feature');
-    
-    elements.forEach((el, index) => {
+    const elements = qsa('.service-card, .gallery-item, .contact-card, .contact-form-wrapper, .feature');
+
+    if (!elements.length) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+        elements.forEach((el) => {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+        });
+        return;
+    }
+
+    elements.forEach((el) => {
         el.style.opacity = '0';
-        el.style.transform = 'translateY(30px)';
-        el.style.transition = `opacity 0.6s ease ${index * 0.05}s, transform 0.6s ease ${index * 0.05}s`;
+        el.style.transform = 'translateY(24px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
     });
-    
-    // Trigger initial check
-    revealOnScroll();
-    
-    // Add scroll listener
-    window.addEventListener('scroll', revealOnScroll, { passive: true });
-}
 
-// Run on DOM ready
-document.addEventListener('DOMContentLoaded', initReveal);
-
-// ========================================
-// PERFORMANCE: DEBOUNCE SCROLL EVENTS
-// ========================================
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+    const revealElement = (el) => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
     };
+
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    revealElement(entry.target);
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.12
+        });
+
+        elements.forEach((el) => observer.observe(el));
+    } else {
+        elements.forEach(revealElement);
+    }
 }
 
-// Apply debounce to scroll events
-window.addEventListener('scroll', debounce(() => {
-    // Scroll-based animations can go here
-}, 16));
-
 // ========================================
-// ANALYTICS TRACKING (Placeholder)
+// BASIC EVENT TRACKING
 // ========================================
 function trackEvent(eventName, eventData = {}) {
-    // Placeholder for analytics tracking
-    // Replace with Google Analytics, Facebook Pixel, etc.
-    console.log('Event tracked:', eventName, eventData);
+    console.log('Tracked:', eventName, eventData);
 }
 
-// Track CTA clicks
-document.querySelectorAll('.btn-primary, .btn-whatsapp-header, .floating-whatsapp').forEach(btn => {
-    btn.addEventListener('click', () => {
-        trackEvent('cta_click', {
-            button: btn.textContent.trim(),
-            location: btn.classList.contains('floating-whatsapp') ? 'floating' : 'inline'
+function initTracking() {
+    qsa('.btn-primary, .btn-whatsapp-header, .floating-whatsapp').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            trackEvent('whatsapp_or_primary_click', {
+                text: btn.textContent.trim(),
+                href: btn.getAttribute('href') || ''
+            });
         });
     });
-});
 
-// Track phone clicks
-document.querySelectorAll('a[href^="tel:"]').forEach(link => {
-    link.addEventListener('click', () => {
-        trackEvent('phone_click', {
-            number: link.getAttribute('href')
+    qsa('a[href^="tel:"]').forEach((link) => {
+        link.addEventListener('click', () => {
+            trackEvent('phone_click', {
+                phone: link.getAttribute('href')
+            });
         });
     });
-});
+
+    qsa('.nav-list a').forEach((link) => {
+        link.addEventListener('click', () => {
+            trackEvent('nav_click', {
+                target: link.getAttribute('href')
+            });
+        });
+    });
+}
 
 // ========================================
-// PREFERS REDUCED MOTION
+// REDUCED MOTION SUPPORT
 // ========================================
-if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    // Disable animations for users who prefer reduced motion
+function initReducedMotion() {
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
     document.documentElement.style.scrollBehavior = 'auto';
-    
+
     const style = document.createElement('style');
     style.textContent = `
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
@@ -429,14 +362,4 @@ if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     document.head.appendChild(style);
 }
 
-// ========================================
-// SERVICE WORKER REGISTRATION (PWA Support)
-// ========================================
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // Uncomment when service worker file is added
-        // navigator.serviceWorker.register('/sw.js');
-    });
-}
-
-console.log('Andrade Drywall Services - Website Loaded Successfully');
+console.log('Andrade Drywall Services loaded successfully.');
